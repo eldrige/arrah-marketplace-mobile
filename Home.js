@@ -1,13 +1,23 @@
 import { useQuery } from '@apollo/client';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
 import { GET_PRODUCTS } from './GQL/products';
+import { ProductCard } from './components/product-card';
 
 export default function Home() {
-  const { loading, error, data } = useQuery(GET_PRODUCTS, {
+  const [cursor, setCursor] = useState(10);
+  const { loading, error, data, fetchMore } = useQuery(GET_PRODUCTS, {
     variables: {
-      take: 5,
-      skip: 0,
+      take: 20,
+      skip: cursor,
     },
   });
 
@@ -17,6 +27,7 @@ export default function Home() {
         <Text>Loading.....</Text>
       </View>
     );
+
   if (error)
     return (
       <SafeAreaView>
@@ -26,19 +37,48 @@ export default function Home() {
       </SafeAreaView>
     );
 
+  const renderItem = ({ item }) => {
+    return (
+      <ProductCard
+        name={item.name}
+        imageURL={item.image}
+        price={item.amount}
+        currency={item.currency}
+      />
+    );
+  };
+
+  const handleFetchMore = () => {
+    let newCursor = cursor + 10;
+    setCursor(newCursor);
+    fetchMore({
+      variables: {
+        skip: newCursor,
+      },
+    });
+  };
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaView>
+      <View style={styles.container}>
+        <FlatList
+          data={data.products}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleFetchMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ActivityIndicator size="large" color="black" />}
+        />
+        <StatusBar style="auto" />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 16,
   },
 });
